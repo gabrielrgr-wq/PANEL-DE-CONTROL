@@ -1,0 +1,9 @@
+{
+  "short_name": "Panel Control",
+  "name": "PANEL DE CONTROL 2026",
+  "icons": [],
+  "start_url": "./index.html",
+  "background_color": "#0f172a",
+  "theme_color": "#1e293b",
+  "display": "standalone"
+}
