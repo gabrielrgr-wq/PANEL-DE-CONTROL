@@ -1,7 +1,0 @@
-# Archivos de sistema operativo
-.DS_Store
-Thumbs.db
-
-# Configuración local de editores
-.vscode/
-.idea/
