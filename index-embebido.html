@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c1f23">
+<title>PANEL DE CONTROL · Construyendo Canelones UE-1</title>
+<meta name="description" content="Panel de control con acceso directo a los dashboards de obra: BACHEO y FORMULARIOS.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --asphalt-900:#15171a;
+    --asphalt-800:#1c1f23;
+    --asphalt-700:#25292e;
+    --asphalt-600:#33383e;
+    --line-yellow:#f5c518;
+    --cone-orange:#ff6a3d;
+    --concrete-100:#eeece7;
+    --muted-400:#9aa0a6;
+    --muted-500:#7b8288;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;overflow-x:hidden;}
+  body{
+    background:var(--asphalt-900);
+    color:var(--concrete-100);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
+    min-height:100dvh;
+    overscroll-behavior-y:none;
+  }
+  a{color:inherit;}
+
+  /* ---------- Barra superior fija ---------- */
+  .topbar{
+    position:sticky;
+    top:0;
+    z-index:20;
+    background:var(--asphalt-800);
+    border-bottom:1px solid var(--asphalt-600);
+    flex-shrink:0;
+    padding-top:env(safe-area-inset-top);
+  }
+  .topbar-inner{
+    max-width:1100px;
+    margin:0 auto;
+    padding:10px 14px 9px;
+  }
+  .topbar-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .topbar-brand{
+    display:flex;
+    flex-direction:column;
+    line-height:1.05;
+    flex-shrink:0;
+  }
+  .topbar-title{
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    font-size:clamp(15px,4.2vw,19px);
+    letter-spacing:0.05em;
+    color:var(--line-yellow);
+    text-transform:uppercase;
+    white-space:nowrap;
+  }
+  .topbar-sub{
+    font-size:10px;
+    color:var(--muted-400);
+    letter-spacing:0.03em;
+    margin-top:2px;
+    white-space:nowrap;
+  }
+
+  /* Selector de dos botones (segmented control) */
+  .switcher{
+    position:relative;
+    display:flex;
+    background:var(--asphalt-900);
+    border:1px solid var(--asphalt-600);
+    border-radius:11px;
+    padding:3px;
+    gap:3px;
+    width:100%;
+    max-width:280px;
+    margin-left:auto;
+  }
+  .switcher-pill{
+    position:absolute;
+    top:3px;
+    left:3px;
+    width:calc(50% - 3px);
+    height:calc(100% - 6px);
+    border-radius:8px;
+    background:var(--asphalt-700);
+    transition:transform .25s cubic-bezier(.4,0,.2,1);
+    z-index:0;
+  }
+  .switcher-pill.pos-reclamos{transform:translateX(calc(100% + 3px));}
+  .switch-btn{
+    position:relative;
+    z-index:1;
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    min-height:40px;
+    padding:8px 8px;
+    border:none;
+    border-radius:8px;
+    background:transparent;
+    color:var(--muted-400);
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:clamp(11px,3vw,13px);
+    cursor:pointer;
+    transition:color .15s ease;
+    -webkit-tap-highlight-color:transparent;
+    white-space:nowrap;
+  }
+  .switch-btn svg{width:15px;height:15px;flex-shrink:0;}
+  .switch-btn img{width:17px;height:17px;flex-shrink:0;object-fit:contain;}
+  .switch-btn.active{color:var(--line-yellow);}
+  .switch-btn.active.orange{color:var(--cone-orange);}
+  .switch-btn:focus-visible{
+    outline:2px solid var(--line-yellow);
+    outline-offset:1px;
+  }
+
+  .hazard-strip{
+    height:4px;
+    width:100%;
+    background:repeating-linear-gradient(
+      -45deg,
+      var(--line-yellow) 0 12px,
+      var(--asphalt-900) 12px 24px
+    );
+    flex-shrink:0;
+  }
+
+  /* ---------- Área del panel embebido ---------- */
+  .stage{
+    position:relative;
+    flex:1;
+    background:var(--asphalt-800);
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+  }
+  .stage-frame{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    border:0;
+    display:block;
+    opacity:1;
+    transition:opacity .2s ease;
+  }
+  .stage-frame.loading{opacity:0;}
+
+  .stage-topline{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    padding:8px 12px;
+    background:var(--asphalt-700);
+    border-bottom:1px solid var(--asphalt-600);
+    font-size:12px;
+    flex-shrink:0;
+  }
+  .stage-topline .label{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    color:var(--muted-400);
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-size:clamp(11px,3vw,12px);
+  }
+  .stage-topline .label img{width:14px;height:14px;object-fit:contain;flex-shrink:0;}
+  .stage-topline a{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    color:var(--muted-400);
+    font-weight:600;
+    white-space:nowrap;
+    flex-shrink:0;
+    padding:4px;
+  }
+  .stage-topline a svg{width:15px;height:15px;flex-shrink:0;}
+  .stage-topline a:hover{color:var(--concrete-100);}
+  .stage-topline a .open-text{display:none;}
+  @media (min-width:480px){
+    .stage-topline a .open-text{display:inline;}
+  }
+
+  .stage-body{
+    position:relative;
+    flex:1;
+    min-height:0;
+  }
+
+  .loader{
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:var(--asphalt-800);
+    z-index:5;
+  }
+  .loader.show{display:flex;}
+  .loader-ring{
+    width:30px;height:30px;
+    border-radius:50%;
+    border:3px solid var(--asphalt-600);
+    border-top-color:var(--line-yellow);
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .fallback{
+    position:absolute;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    text-align:center;
+    padding:32px;
+  }
+  .fallback.show{display:flex;}
+  .fallback p{
+    color:var(--muted-400);
+    font-size:13px;
+    max-width:40ch;
+    margin:0;
+  }
+  .fallback .btn-open{
+    background:var(--line-yellow);
+    color:var(--asphalt-900);
+    font-weight:700;
+    font-size:13px;
+    padding:10px 18px;
+    border-radius:8px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-row">
+        <div class="topbar-brand">
+          <span class="topbar-title">Panel de Control</span>
+          <span class="topbar-sub">Construyendo Canelones · UE-1</span>
+        </div>
+
+        <div class="switcher" role="tablist" aria-label="Elegir panel">
+          <div class="switcher-pill" id="switcher-pill"></div>
+          <button class="switch-btn active" id="btn-bacheo" role="tab" aria-selected="true" onclick="mostrarPanel('bacheo')">
+            <img src="assets/bacheo-icon.png" alt="" aria-hidden="true">
+            BACHEO
+          </button>
+          <button class="switch-btn" id="btn-reclamos" role="tab" aria-selected="false" onclick="mostrarPanel('reclamos')">
+            <img src="assets/formularios-icon.png" alt="" aria-hidden="true">
+            FORMULARIOS
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hazard-strip"></div>
+
+  <div class="stage">
+    <div class="stage-topline">
+      <span class="label" id="stage-label"><img id="stage-icon" src="assets/bacheo-icon.png" alt="">BACHEO — Dashboard de Obra</span>
+      <a id="stage-open" href="https://gabrielrgr-wq.github.io/BACHEO-2026/" target="_blank" rel="noopener" aria-label="Abrir en pestaña nueva">
+        <span class="open-text">Abrir en pestaña nueva</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/></svg>
+      </a>
+    </div>
+    <div class="stage-body">
+      <iframe class="stage-frame" id="panel-frame"
+        src="https://gabrielrgr-wq.github.io/BACHEO-2026/"
+        title="Panel embebido"
+        loading="eager"
+        onload="ocultarLoader()"
+        onerror="mostrarFallback()"></iframe>
+
+      <div class="loader" id="loader"><div class="loader-ring"></div></div>
+
+      <div class="fallback" id="fallback">
+        <p>Este panel no permite mostrarse embebido dentro de otra página. Abrilo directamente para verlo completo.</p>
+        <a class="btn-open" id="fallback-link" href="https://gabrielrgr-wq.github.io/BACHEO-2026/" target="_blank" rel="noopener">Abrir panel</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const panels = {
+      bacheo: {
+        url: "https://gabrielrgr-wq.github.io/BACHEO-2026/",
+        label: "BACHEO — Dashboard de Obra",
+        icon: "assets/bacheo-icon.png"
+      },
+      reclamos: {
+        url: "https://gabrielrgr-wq.github.io/app1/",
+        label: "FORMULARIOS — Panel de Obra Vial",
+        icon: "assets/formularios-icon.png"
+      }
+    };
+
+    let current = 'bacheo';
+
+    function mostrarPanel(key){
+      if(key === current) return;
+      current = key;
+      const data = panels[key];
+      const frame = document.getElementById('panel-frame');
+      const icon = document.getElementById('stage-icon');
+      const openLink = document.getElementById('stage-open');
+      const fallbackLink = document.getElementById('fallback-link');
+      const pill = document.getElementById('switcher-pill');
+      const loader = document.getElementById('loader');
+
+      document.getElementById('fallback').classList.remove('show');
+      loader.classList.add('show');
+      frame.classList.add('loading');
+      frame.src = data.url;
+
+      icon.src = data.icon;
+      icon.nextSibling.nodeValue = data.label;
+      openLink.href = data.url;
+      fallbackLink.href = data.url;
+
+      pill.classList.toggle('pos-reclamos', key === 'reclamos');
+
+      document.getElementById('btn-bacheo').classList.toggle('active', key === 'bacheo');
+      document.getElementById('btn-bacheo').setAttribute('aria-selected', key === 'bacheo');
+
+      document.getElementById('btn-reclamos').classList.toggle('active', key === 'reclamos');
+      document.getElementById('btn-reclamos').classList.toggle('orange', key === 'reclamos');
+      document.getElementById('btn-reclamos').setAttribute('aria-selected', key === 'reclamos');
+    }
+
+    function ocultarLoader(){
+      document.getElementById('loader').classList.remove('show');
+      document.getElementById('panel-frame').classList.remove('loading');
+    }
+
+    function mostrarFallback(){
+      ocultarLoader();
+      document.getElementById('panel-frame').style.display = 'none';
+      document.getElementById('fallback').classList.add('show');
+    }
+  </script>
+
+</body>
+</html>
