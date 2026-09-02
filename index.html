@@ -54,31 +54,28 @@
   }
   .topbar-row{
     display:flex;
-    align-items:center;
-    justify-content:space-between;
+    flex-direction:column;
     gap:10px;
   }
   .topbar-brand{
     display:flex;
     flex-direction:column;
     line-height:1.05;
-    flex-shrink:0;
+    text-align:center;
   }
   .topbar-title{
     font-family:'Oswald',sans-serif;
     font-weight:700;
-    font-size:clamp(15px,4.2vw,19px);
+    font-size:clamp(16px,5vw,20px);
     letter-spacing:0.05em;
     color:var(--line-yellow);
     text-transform:uppercase;
-    white-space:nowrap;
   }
   .topbar-sub{
     font-size:10px;
     color:var(--muted-400);
     letter-spacing:0.03em;
     margin-top:2px;
-    white-space:nowrap;
   }
 
   /* Selector de dos botones (segmented control) */
@@ -91,8 +88,8 @@
     padding:3px;
     gap:3px;
     width:100%;
-    max-width:280px;
-    margin-left:auto;
+    max-width:420px;
+    margin:0 auto;
   }
   .switcher-pill{
     position:absolute;
@@ -114,15 +111,15 @@
     align-items:center;
     justify-content:center;
     gap:6px;
-    min-height:40px;
-    padding:8px 8px;
+    min-height:42px;
+    padding:8px 6px;
     border:none;
     border-radius:8px;
     background:transparent;
     color:var(--muted-400);
     font-family:'Inter',sans-serif;
     font-weight:600;
-    font-size:clamp(11px,3vw,13px);
+    font-size:clamp(12px,3.6vw,14px);
     cursor:pointer;
     transition:color .15s ease;
     -webkit-tap-highlight-color:transparent;
@@ -246,6 +243,11 @@
     padding:32px;
   }
   .fallback.show{display:flex;}
+  .fallback-icon{
+    width:44px;height:44px;
+    object-fit:contain;
+    opacity:0.9;
+  }
   .fallback p{
     color:var(--muted-400);
     font-size:13px;
@@ -298,16 +300,17 @@
     </div>
     <div class="stage-body">
       <iframe class="stage-frame" id="panel-frame"
-        src="https://gabrielrgr-wq.github.io/BACHEO-2026/"
+        src=""
         title="Panel embebido"
         loading="eager"
-        onload="ocultarLoader()"
+        onload="verificarCarga(this)"
         onerror="mostrarFallback()"></iframe>
 
       <div class="loader" id="loader"><div class="loader-ring"></div></div>
 
       <div class="fallback" id="fallback">
-        <p>Este panel no permite mostrarse embebido dentro de otra página. Abrilo directamente para verlo completo.</p>
+        <img id="fallback-icon" src="assets/bacheo-icon.png" alt="" class="fallback-icon">
+        <p id="fallback-text">Este panel no permite mostrarse embebido dentro de otra página. Abrilo directamente para verlo completo.</p>
         <a class="btn-open" id="fallback-link" href="https://gabrielrgr-wq.github.io/BACHEO-2026/" target="_blank" rel="noopener">Abrir panel</a>
       </div>
     </div>
@@ -318,46 +321,65 @@
       bacheo: {
         url: "https://gabrielrgr-wq.github.io/BACHEO-2026/",
         label: "BACHEO — Dashboard de Obra",
-        icon: "assets/bacheo-icon.png"
+        icon: "assets/bacheo-icon.png",
+        embeddable: false
       },
       reclamos: {
         url: "https://gabrielrgr-wq.github.io/app1/",
         label: "FORMULARIOS — Panel de Obra Vial",
-        icon: "assets/formularios-icon.png"
+        icon: "assets/formularios-icon.png",
+        embeddable: true
       }
     };
 
-    let current = 'bacheo';
+    let current = null;
 
-    function mostrarPanel(key){
-      if(key === current) return;
+    function cargarPanel(key){
       current = key;
       const data = panels[key];
       const frame = document.getElementById('panel-frame');
       const icon = document.getElementById('stage-icon');
       const openLink = document.getElementById('stage-open');
       const fallbackLink = document.getElementById('fallback-link');
+      const fallbackText = document.getElementById('fallback-text');
       const pill = document.getElementById('switcher-pill');
       const loader = document.getElementById('loader');
-
-      document.getElementById('fallback').classList.remove('show');
-      loader.classList.add('show');
-      frame.classList.add('loading');
-      frame.src = data.url;
 
       icon.src = data.icon;
       icon.nextSibling.nodeValue = data.label;
       openLink.href = data.url;
       fallbackLink.href = data.url;
+      fallbackText.textContent = `${data.label.split(' — ')[0]} no permite mostrarse embebido dentro de otra página. Tocá el botón para abrirlo directamente.`;
+      document.getElementById('fallback-icon').src = data.icon;
 
       pill.classList.toggle('pos-reclamos', key === 'reclamos');
-
       document.getElementById('btn-bacheo').classList.toggle('active', key === 'bacheo');
       document.getElementById('btn-bacheo').setAttribute('aria-selected', key === 'bacheo');
-
       document.getElementById('btn-reclamos').classList.toggle('active', key === 'reclamos');
       document.getElementById('btn-reclamos').classList.toggle('orange', key === 'reclamos');
       document.getElementById('btn-reclamos').setAttribute('aria-selected', key === 'reclamos');
+
+      if(!data.embeddable){
+        // Ya sabemos que este sitio bloquea el embebido: mostramos el aviso
+        // directo, sin intentar cargar el iframe (evita el parpadeo feo).
+        loader.classList.remove('show');
+        frame.classList.remove('loading');
+        frame.style.visibility = 'hidden';
+        frame.removeAttribute('src');
+        document.getElementById('fallback').classList.add('show');
+        return;
+      }
+
+      document.getElementById('fallback').classList.remove('show');
+      frame.style.visibility = 'visible';
+      loader.classList.add('show');
+      frame.classList.add('loading');
+      frame.src = data.url;
+    }
+
+    function mostrarPanel(key){
+      if(key === current) return;
+      cargarPanel(key);
     }
 
     function ocultarLoader(){
@@ -365,11 +387,30 @@
       document.getElementById('panel-frame').classList.remove('loading');
     }
 
+    function verificarCarga(frame){
+      if(!frame.getAttribute('src')) return;
+      ocultarLoader();
+      // Si el sitio bloquea ser mostrado embebido (X-Frame-Options / CSP),
+      // el navegador reemplaza el iframe por su propia página de error,
+      // que sí es legible desde acá. Un sitio externo cargado con éxito
+      // NO se puede leer (cross-origin) y esto lanza una excepción: eso es éxito.
+      try {
+        const href = frame.contentWindow.location.href;
+        if (!href || href === 'about:blank' || href.indexOf('chrome-error') !== -1) {
+          mostrarFallback();
+        }
+      } catch (e) {
+        // Acceso bloqueado por cross-origin = el panel externo cargó bien.
+      }
+    }
+
     function mostrarFallback(){
       ocultarLoader();
-      document.getElementById('panel-frame').style.display = 'none';
+      document.getElementById('panel-frame').style.visibility = 'hidden';
       document.getElementById('fallback').classList.add('show');
     }
+
+    cargarPanel('bacheo');
   </script>
 
 </body>
