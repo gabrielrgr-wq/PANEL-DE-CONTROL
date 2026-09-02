@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -322,7 +322,7 @@
         url: "https://gabrielrgr-wq.github.io/BACHEO-2026/",
         label: "BACHEO — Dashboard de Obra",
         icon: "assets/bacheo-icon.png",
-        embeddable: false
+        embeddable: true
       },
       reclamos: {
         url: "https://gabrielrgr-wq.github.io/app1/",
@@ -360,8 +360,6 @@
       document.getElementById('btn-reclamos').setAttribute('aria-selected', key === 'reclamos');
 
       if(!data.embeddable){
-        // Ya sabemos que este sitio bloquea el embebido: mostramos el aviso
-        // directo, sin intentar cargar el iframe (evita el parpadeo feo).
         loader.classList.remove('show');
         frame.classList.remove('loading');
         frame.style.visibility = 'hidden';
@@ -390,17 +388,12 @@
     function verificarCarga(frame){
       if(!frame.getAttribute('src')) return;
       ocultarLoader();
-      // Si el sitio bloquea ser mostrado embebido (X-Frame-Options / CSP),
-      // el navegador reemplaza el iframe por su propia página de error,
-      // que sí es legible desde acá. Un sitio externo cargado con éxito
-      // NO se puede leer (cross-origin) y esto lanza una excepción: eso es éxito.
       try {
         const href = frame.contentWindow.location.href;
         if (!href || href === 'about:blank' || href.indexOf('chrome-error') !== -1) {
           mostrarFallback();
         }
       } catch (e) {
-        // Acceso bloqueado por cross-origin = el panel externo cargó bien.
       }
     }
 
